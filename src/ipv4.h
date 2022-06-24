@@ -92,5 +92,7 @@ int ipv4_restore_routes(struct tunnel *tunnel);
 
 int ipv4_add_nameservers_to_resolv_conf(struct tunnel *tunnel);
 int ipv4_del_nameservers_from_resolv_conf(struct tunnel *tunnel);
+int ipv4_add_nameservers_to_systemd_resolved(struct tunnel *tunnel);
+int ipv4_del_nameservers_from_systemd_resolved(struct tunnel *tunnel);
 
 #endif

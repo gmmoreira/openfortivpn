@@ -1402,3 +1402,129 @@ err_close:
 		         strerror(errno));
 	return ret;
 }
+
+int ipv4_add_nameservers_to_systemd_resolved(struct tunnel *tunnel) 
+{
+	log_debug("Adding nameservers to interface through resolvectl.\n");
+
+	if (tunnel->ipv4.ns1_addr.s_addr != 0)
+	{
+		log_debug("ns1: %s\n", inet_ntoa(tunnel->ipv4.ns1_addr));
+	}
+	
+	if (tunnel->ipv4.ns2_addr.s_addr != 0)
+	{
+		log_debug("ns2: %s\n", inet_ntoa(tunnel->ipv4.ns2_addr));
+	}
+
+	if (tunnel->ipv4.dns_suffix != NULL)
+	{
+		log_debug("suffix: %s\n", inet_ntoa(tunnel->ipv4.ns1_addr), inet_ntoa(tunnel->ipv4.ns2_addr), tunnel->ipv4.dns_suffix);
+	}
+
+	FILE *file;
+	int dns_len;
+	int resolvectl_dns_call_len;
+	int resolvectl_domain_call_len;
+	char *resolvectl_dns_call;
+	char *resolvectl_domain_call;
+	char *resolvectl_path = "/usr/bin/resolvectl";
+
+	dns_len = strlen("'xxx.xxx.xxx.xxx' ");
+	resolvectl_dns_call_len = strlen(resolvectl_path) + strlen(" dns ") + strlen(tunnel->ppp_iface) + 1 + 2 * dns_len;
+	resolvectl_dns_call = malloc(resolvectl_dns_call_len);
+	if (resolvectl_dns_call == NULL)
+	{
+		log_warn("Could not create command to run resolvectl (%s).\n", strerror(errno));
+		return 1;
+	}
+
+	strcpy(resolvectl_dns_call, resolvectl_path);
+	strcat(resolvectl_dns_call, " dns ");
+	strcat(resolvectl_dns_call, tunnel->ppp_iface);
+
+	if (tunnel->ipv4.ns1_addr.s_addr != 0)
+	{
+		strcat(resolvectl_dns_call, " '");
+		strncat(resolvectl_dns_call, inet_ntoa(tunnel->ipv4.ns1_addr), 15);
+		strcat(resolvectl_dns_call, "'");
+	}
+	
+	if (tunnel->ipv4.ns2_addr.s_addr != 0)
+	{
+		strcat(resolvectl_dns_call, " '");
+		strncat(resolvectl_dns_call, inet_ntoa(tunnel->ipv4.ns2_addr), 15);
+		strcat(resolvectl_dns_call, "'");
+	}
+
+	log_debug("resolvectl_dns_call: %s\n", resolvectl_dns_call);
+	file = popen(resolvectl_dns_call, "w");
+	if (file == NULL)
+	{
+		log_warn("Could not open pipe %s (%s).\n", resolvectl_dns_call, strerror(errno));
+		free(resolvectl_dns_call);
+		return 1;
+	}
+	free(resolvectl_dns_call);
+
+	if (tunnel->config->domain) 
+	{
+		resolvectl_domain_call_len = strlen(resolvectl_path) + strlen(" domain ") + strlen(tunnel->ppp_iface) + 1 + strlen(tunnel->config->domain);
+		resolvectl_domain_call = malloc(resolvectl_domain_call_len);
+		if (resolvectl_domain_call == NULL)
+		{
+			log_warn("Could not create command to run resolvectl (%s).\n", strerror(errno));
+			return 1;
+		}
+
+		strcpy(resolvectl_domain_call, resolvectl_path);
+		strcat(resolvectl_domain_call, " domain ");
+		strcat(resolvectl_domain_call, tunnel->ppp_iface);
+		strcat(resolvectl_domain_call, " ");
+		strcat(resolvectl_domain_call, tunnel->config->domain);
+
+		log_debug("resolvectl_domain_call: %s\n", resolvectl_domain_call);
+		file = popen(resolvectl_domain_call, "w");
+		if (file == NULL)
+		{
+			log_warn("Could not open pipe %s (%s).\n", resolvectl_domain_call, strerror(errno));
+			free(resolvectl_domain_call);
+			return 1;
+		}
+
+		free(resolvectl_domain_call);
+	}
+
+	return 0; 
+}
+
+int ipv4_del_nameservers_from_systemd_resolved(struct tunnel *tunnel)
+{
+	log_debug("Reverting interface configuration through resolvectl.\n");
+	FILE *file;
+	int resolvectl_revert_call_len;
+	char *resolvectl_revert_call;
+	char *resolvectl_path = "/usr/bin/resolvectl";
+
+	resolvectl_revert_call_len = strlen(resolvectl_path) + 8 + strlen(tunnel->ppp_iface);
+	resolvectl_revert_call = malloc(resolvectl_revert_call_len);
+	if (resolvectl_revert_call == NULL)
+	{
+		log_warn("Could not create command to run resolvectl (%s).\n", strerror(errno));
+		return 1;
+	}
+	snprintf(resolvectl_revert_call, resolvectl_revert_call_len, "%s revert %s", resolvectl_path, tunnel->ppp_iface);
+
+	log_debug("resolvectl_revert_call: %s\n", resolvectl_revert_call);
+	file = popen(resolvectl_revert_call, "w");
+	if (file == NULL)
+	{
+		log_warn("Could not open pipe %s (%s).\n", resolvectl_revert_call, strerror(errno));
+		free(resolvectl_revert_call);
+		return 1;
+	}
+
+	free(resolvectl_revert_call);
+
+	return 0;
+}

@@ -125,7 +125,8 @@ static int on_ppp_if_up(struct tunnel *tunnel)
 
 	if (tunnel->config->set_dns) {
 		log_info("Adding VPN nameservers...\n");
-		ipv4_add_nameservers_to_resolv_conf(tunnel);
+		ipv4_add_nameservers_to_systemd_resolved(tunnel);
+		// ipv4_add_nameservers_to_resolv_conf(tunnel);
 	}
 
 	log_info("Tunnel is up and running.\n");
@@ -152,7 +153,8 @@ static int on_ppp_if_down(struct tunnel *tunnel)
 
 	if (tunnel->config->set_dns) {
 		log_info("Removing VPN nameservers...\n");
-		ipv4_del_nameservers_from_resolv_conf(tunnel);
+		ipv4_del_nameservers_from_systemd_resolved(tunnel);
+		// ipv4_del_nameservers_from_resolv_conf(tunnel);
 	}
 
 	return 0;

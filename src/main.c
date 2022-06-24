@@ -76,6 +76,7 @@
 #define usage \
 "Usage: openfortivpn [<host>[:<port>]] [-u <user>] [-p <pass>]\n" \
 "                    [--cookie=<cookie>] [--cookie-on-stdin]\n" \
+"                    [--domain=<domain>]\n" \
 "                    [--otp=<otp>] [--otp-delay=<delay>] [--otp-prompt=<prompt>]\n" \
 "                    [--pinentry=<program>] [--realm=<realm>]\n" \
 "                    [--ifname=<ifname>] [--set-routes=<0|1>]\n" \
@@ -115,6 +116,7 @@ PPPD_USAGE \
 "  -p <pass>, --password=<pass>  VPN account password.\n" \
 "  --cookie=<cookie>             A valid session cookie (SVPNCOOKIE).\n" \
 "  --cookie-on-stdin             Read the cookie (SVPNCOOKIE) from standard input.\n" \
+"  --domain=<domain>             Set resolvectl domain.\n" \
 "  -o <otp>, --otp=<otp>         One-Time-Password.\n" \
 "  --otp-prompt=<prompt>         Search for the OTP prompt starting with this string.\n" \
 "  --otp-delay=<delay>           Wait <delay> seconds before sending the OTP.\n" \
@@ -200,6 +202,7 @@ int main(int argc, char **argv)
 		.password = {'\0'},
 		.password_set = 0,
 		.cookie = NULL,
+		.domain = NULL,
 		.otp = {'\0'},
 		.otp_prompt = NULL,
 		.otp_delay = 0,
@@ -255,6 +258,7 @@ int main(int argc, char **argv)
 		{"password",             required_argument, NULL, 'p'},
 		{"cookie",               required_argument, NULL, 0},
 		{"cookie-on-stdin",      no_argument, NULL, 0},
+		{"domain",               required_argument, NULL, 0},
 		{"otp",                  required_argument, NULL, 'o'},
 		{"otp-prompt",           required_argument, NULL, 0},
 		{"otp-delay",            required_argument, NULL, 0},
@@ -530,6 +534,11 @@ int main(int argc, char **argv)
 				}
 				free(cli_cfg.cookie);
 				cli_cfg.cookie = cookie;
+				break;
+			}
+			if (strcmp(long_options[option_index].name,
+			           "domain") == 0) {
+				cli_cfg.domain = strdup(optarg);
 				break;
 			}
 			goto user_error;
